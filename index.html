@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta name="theme-color" content="#1C7448">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>ใบสั่งวัตถุดิบ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow column like a market order slip. Pick items -> review (ordered vs missing) -> image to send to the buyer. */
+:root {
+  --bg: #F2F5F1;
+  --surface: #FFFFFF;
+  --fg: #16231B;
+  --muted: #5C6B61;
+  --line: #D8E0D9;
+  --accent: #1C7448;
+  --accent-fg: #FFFFFF;
+  --ok-bg: #E3F2E8;
+  --warn: #8A5300;
+  --warn-bg: #FFF0D2;
+  --focus: #0B5FD0;
+  --display: 'Prompt', 'Sarabun', system-ui, sans-serif;
+  --body: 'Sarabun', 'Noto Sans Thai', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1611; --surface: #16211A; --fg: #E7EFE9; --muted: #97A99C; --line: #26352B;
+    --accent: #4DC48B; --accent-fg: #06240F; --ok-bg: #183323; --warn: #F2BE63; --warn-bg: #2D2410; --focus: #7DB2FF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1611; --surface: #16211A; --fg: #E7EFE9; --muted: #97A99C; --line: #26352B;
+  --accent: #4DC48B; --accent-fg: #06240F; --ok-bg: #183323; --warn: #F2BE63; --warn-bg: #2D2410; --focus: #7DB2FF;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 140px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.page { max-width: 640px; margin: 0 auto; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+h1, h2 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: 24px; font-weight: 700; }
+h2 { font-size: 20px; font-weight: 600; }
+.muted { color: var(--muted); }
+.empty { color: var(--muted); padding: 24px 0; margin: 0; }
+
+/* top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--bg); padding-block: 14px 8px; }
+.top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.date { color: var(--muted); font-size: 15px; }
+.search { width: 100%; height: 46px; margin-top: 10px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 4px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip-f { flex: none; height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-weight: 500; white-space: nowrap; }
+.chip-f[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+/* list */
+.cat { font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: .02em; color: var(--muted); margin: 22px 0 4px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 8px; margin-inline: -8px; border-bottom: 1px solid var(--line); min-width: 0; }
+.row.on { background: var(--ok-bg); }
+.nm { flex: 1; min-width: 0; font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
+.nm small { display: block; }
+.del { border: 0; background: none; color: var(--muted); font-size: 13px; padding: 2px 0; text-decoration: underline; }
+.step { flex: none; display: flex; align-items: center; gap: 6px; }
+.b { width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 24px; line-height: 1; font-weight: 500; }
+.b.plus { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.q { width: 62px; height: 44px; text-align: center; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-family: var(--display); font-weight: 600; font-size: 18px; padding: 0 4px; }
+.row.on .q { border-color: var(--accent); }
+.unit { width: 40px; font-size: 15px; color: var(--muted); }
+.rm-item { flex: none; height: 44px; padding: 0 18px; border: 1px solid var(--warn); border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+.unit-t { width: 48px; height: 44px; padding: 0; border: 1px dashed var(--muted); border-radius: 10px; background: none; font-weight: 600; color: var(--fg); }
+.unit-t.baht { border-style: solid; border-color: var(--warn); background: var(--warn-bg); color: var(--warn); }
+
+/* add item */
+.add-toggle { margin-top: 20px; width: 100%; height: 48px; border: 1.5px dashed var(--muted); border-radius: 10px; background: none; font-weight: 600; }
+.add-form { margin-top: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: grid; gap: 10px; }
+.add-form label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.add-form input, .add-form select, .field input, .field textarea { height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); width: 100%; }
+.field textarea { height: 84px; padding: 10px 12px; resize: vertical; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* bottom bar */
+.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; background: var(--surface); border-top: 1px solid var(--line);
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.bar-in { max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.counts { display: grid; font-size: 15px; line-height: 1.3; }
+.counts b { font-family: var(--display); font-size: 20px; color: var(--accent); }
+.counts .m b { color: var(--warn); font-size: 16px; }
+.btn { height: 48px; padding: 0 20px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.block { width: 100%; }
+
+/* review */
+.review-head { padding-top: calc(16px); display: grid; gap: 6px; }
+.alert { margin-top: 14px; padding: 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); }
+.alert h2 { color: inherit; font-size: 18px; }
+#fatal[hidden] { display: none; }
+.alert p { margin: 4px 0 0; font-size: 15px; }
+.group-label { font-size: 14px; color: var(--muted); margin: 12px 0 6px; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 42px; padding: 0 12px; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: var(--fg); font-weight: 500; }
+.chip::before { content: "+ "; font-weight: 700; color: var(--accent); }
+.section { margin-top: 24px; }
+.rrow { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.rrow .nm { font-size: 17px; }
+.rq { font-family: var(--display); font-weight: 600; white-space: nowrap; }
+.rm { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 20px; line-height: 1; }
+.field { display: grid; gap: 4px; margin-top: 12px; font-size: 14px; color: var(--muted); }
+.actions { display: grid; gap: 10px; margin-top: 24px; }
+
+/* result */
+.shot { width: 100%; display: block; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin-top: 14px; -webkit-touch-callout: default; }
+.hint { font-size: 15px; color: var(--muted); margin: 10px 0 0; }
+.status { min-height: 1.4em; margin: 8px 0 0; font-size: 15px; color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .row, .chip-f, .b { transition: background-color .12s; } }
+</style>
+
+</head>
+<body>
+<div class="page" id="app">
+  <noscript><div class="alert"><h2>เบราว์เซอร์นี้ปิด JavaScript</h2><p>เปิดไฟล์นี้ด้วย Chrome แทน แล้วแอปจะทำงาน</p></div></noscript>
+  <div class="alert" id="fatal" hidden></div>
+  <script>
+    window.addEventListener('error', function (e) {
+      var f = document.getElementById('fatal');
+      if (f) { f.hidden = false; f.textContent = 'แอปทำงานไม่ได้ในโปรแกรมนี้: ' + (e.message || 'ข้อผิดพลาดไม่ทราบสาเหตุ') + ' (ลองเปิดด้วย Chrome)'; }
+    });
+  </script>
+
+  <section id="v-pick">
+    <header class="top">
+      <div class="top-row"><h1>ใบสั่งวัตถุดิบ</h1><button class="chip-f" id="edit-toggle" type="button" aria-pressed="false">แก้ไขรายการ</button></div>
+      <div class="date" id="today"></div>
+      <input class="search" id="search" type="search" placeholder="ค้นหาวัตถุดิบ" aria-label="ค้นหาวัตถุดิบ" autocomplete="off">
+      <div class="chips" id="chips" role="group" aria-label="กรองหมวด"></div>
+    </header>
+    <main id="list"></main>
+    <button class="add-toggle" id="add-toggle" type="button" aria-expanded="false">+ เพิ่มวัตถุดิบใหม่</button>
+    <form class="add-form" id="add-form" hidden>
+      <label for="ni-name">ชื่อวัตถุดิบ<input id="ni-name" type="text" maxlength="40" required autocomplete="off"></label>
+      <div class="two">
+        <label for="ni-unit">หน่วย<select id="ni-unit"></select></label>
+        <label for="ni-cat">หมวด<select id="ni-cat"></select></label>
+      </div>
+      <button class="btn primary" type="submit">เพิ่มเข้ารายการ</button>
+      <p class="status" id="add-status" role="status"></p>
+    </form>
+    <div class="bar">
+      <div class="bar-in">
+        <div class="counts"><span>สั่งแล้ว <b id="c-ord">0</b> รายการ</span><span class="m">ยังไม่ได้สั่ง <b id="c-miss">0</b> รายการ</span></div>
+        <button class="btn primary" id="go-review" type="button" disabled>ตรวจรายการ</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-review" hidden>
+    <div class="review-head">
+      <h1>ตรวจรายการก่อนยืนยัน</h1>
+      <span class="muted">สั่ง <b id="r-ordn">0</b> รายการ จากทั้งหมด <b id="r-all">0</b> รายการ</span>
+    </div>
+    <div class="alert" id="r-alert">
+      <h2>ยังไม่ได้สั่ง <span id="r-missn">0</span> รายการ</h2>
+      <p>ถ้าลืมอันไหน แตะที่ชื่อเพื่อเพิ่มเข้าไปในใบสั่ง จำนวนเริ่มต้นคือ 1</p>
+      <div id="r-missing"></div>
+    </div>
+    <div class="section">
+      <h2>รายการที่สั่ง</h2>
+      <div id="r-order"></div>
+    </div>
+    <div class="section">
+      <label class="field" for="f-shop">ชื่อร้าน (แสดงบนหัวใบสั่ง)<input id="f-shop" type="text" maxlength="40" autocomplete="off"></label>
+      <label class="field" for="f-note">หมายเหตุถึงคนซื้อ<textarea id="f-note" maxlength="300" placeholder="เช่น ขอหมูสดใหม่ ซื้อให้เสร็จก่อน 9 โมง"></textarea></label>
+    </div>
+    <div class="actions">
+      <button class="btn primary block" id="r-go" type="button">ยืนยันและสร้างรูปใบสั่ง</button>
+      <button class="btn block" id="r-back" type="button">กลับไปเลือกเพิ่ม</button>
+    </div>
+  </section>
+
+  <section id="v-result" hidden>
+    <div class="review-head"><h1>ใบสั่งพร้อมส่ง</h1><span class="muted">รูปนี้ส่งให้คนซื้อได้เลย</span></div>
+    <img class="shot" id="shot" alt="รูปใบสั่งวัตถุดิบ">
+    <p class="hint">กดค้างที่รูปแล้วเลือกบันทึกรูป หรือแคปหน้าจอ แล้วส่งทาง LINE</p>
+    <p class="status" id="res-status" role="status"></p>
+    <div class="actions">
+      <button class="btn primary block" id="save-img" type="button" hidden>บันทึกรูปลงเครื่อง</button>
+      <button class="btn block" id="res-edit" type="button">กลับไปแก้ไขรายการ</button>
+      <button class="btn block" id="res-reset" type="button">เริ่มสั่งรอบใหม่</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  var CATS = [
+    { id: 'meat', name: 'เนื้อสัตว์' },
+    { id: 'sea', name: 'อาหารทะเล' },
+    { id: 'veg', name: 'ผัก สมุนไพร' },
+    { id: 'isan', name: 'เครื่องส้มตำ ลาบ อีสาน' },
+    { id: 'dry', name: 'ของแห้ง เครื่องปรุง' },
+    { id: 'egg', name: 'ไข่ นม กะทิ' },
+    { id: 'other', name: 'อื่นๆ' }
+  ];
+  var UNITS = ['กก.', 'ลิตร', 'ขวด', 'ถุง', 'แผง', 'กล่อง', 'แพ็ค', 'กำ', 'ชิ้น', 'กระป๋อง'];
+  var DEF = [
+    ['หมูสับ', 'กก.', 'meat'], ['หมูสามชั้น', 'กก.', 'meat'], ['หมูสไลซ์', 'กก.', 'meat'], ['ตับหมู', 'กก.', 'meat'],
+    ['ลูกชิ้นหมู', 'กก.', 'meat'], ['อกไก่', 'กก.', 'meat'], ['น่องไก่', 'กก.', 'meat'], ['ปีกไก่', 'กก.', 'meat'], ['เนื้อวัว', 'กก.', 'meat'],
+    ['กุ้งสด', 'กก.', 'sea'], ['ปลาหมึก', 'กก.', 'sea'], ['ปลากะพง', 'กก.', 'sea'], ['หอยแมลงภู่', 'กก.', 'sea'], ['ปูอัด', 'แพ็ค', 'sea'],
+    ['กะเพรา', 'กก.', 'veg'], ['โหระพา', 'กก.', 'veg'], ['ผักบุ้ง', 'กำ', 'veg'], ['คะน้า', 'กก.', 'veg'], ['กะหล่ำปลี', 'กก.', 'veg'],
+    ['ผักกาดขาว', 'กก.', 'veg'], ['ถั่วฝักยาว', 'กก.', 'veg'], ['มะเขือเทศ', 'กก.', 'veg'], ['แตงกวา', 'กก.', 'veg'], ['ต้นหอม ผักชี', 'กก.', 'veg'],
+    ['กระเทียม', 'กก.', 'veg'], ['หอมแดง', 'กก.', 'veg'], ['หอมหัวใหญ่', 'กก.', 'veg'], ['พริกขี้หนู', 'กก.', 'veg'], ['พริกชี้ฟ้า', 'กก.', 'veg'],
+    ['มะนาว', 'กก.', 'veg'], ['ขิง', 'กก.', 'veg'], ['ข่า', 'กก.', 'veg'], ['ตะไคร้', 'กก.', 'veg'], ['ใบมะกรูด', 'กก.', 'veg'], ['เห็ดฟาง', 'กก.', 'veg'],
+    ['ข้าวสาร', 'กก.', 'dry'], ['เส้นใหญ่', 'กก.', 'dry'], ['เส้นเล็ก', 'กก.', 'dry'], ['วุ้นเส้น', 'แพ็ค', 'dry'], ['น้ำตาลทราย', 'กก.', 'dry'],
+    ['เกลือ', 'กก.', 'dry'], ['พริกป่น', 'กก.', 'dry'], ['น้ำปลา', 'ขวด', 'dry'], ['ซีอิ๊วขาว', 'ขวด', 'dry'], ['ซอสหอยนางรม', 'ขวด', 'dry'],
+    ['ซอสพริก', 'ขวด', 'dry'], ['น้ำส้มสายชู', 'ขวด', 'dry'], ['น้ำมันพืช', 'ลิตร', 'dry'], ['ผงปรุงรส', 'ถุง', 'dry'], ['แป้งทอดกรอบ', 'ถุง', 'dry'],
+    ['ไข่ไก่', 'แผง', 'egg'], ['ไข่เป็ด', 'แผง', 'egg'], ['นมข้นหวาน', 'กระป๋อง', 'egg'], ['กะทิ', 'กล่อง', 'egg'],
+    ['น้ำแข็ง', 'ถุง', 'other'], ['น้ำดื่ม', 'แพ็ค', 'other'], ['ถุงพลาสติก', 'แพ็ค', 'other'], ['กล่องข้าว', 'แพ็ค', 'other'], ['ถุงมือ', 'กล่อง', 'other'], ['ทิชชู่', 'แพ็ค', 'other'],
+    /* รายการร้านอาหารอีสาน: ต่อท้ายเสมอ เพื่อไม่ให้รหัสรายการเดิมและจำนวนที่บันทึกไว้เลื่อน */
+    ['คอหมู', 'กก.', 'meat'], ['ซี่โครงหมู', 'กก.', 'meat'], ['กระดูกอ่อนหมู', 'กก.', 'meat'], ['เอ็นวัว', 'กก.', 'meat'], ['ไส้อ่อนหมู', 'กก.', 'meat'],
+    ['ไก่ทั้งตัว', 'กก.', 'meat'], ['สะโพกไก่', 'กก.', 'meat'], ['หมูแดดเดียว', 'กก.', 'meat'], ['เนื้อแดดเดียว', 'กก.', 'meat'],
+    ['ไส้กรอกอีสาน', 'กก.', 'meat'], ['แหนม', 'กก.', 'meat'], ['หมูยอ', 'กก.', 'meat'],
+    ['ปลานิล', 'กก.', 'sea'], ['ปลาดุก', 'กก.', 'sea'], ['ปลาทับทิม', 'กก.', 'sea'], ['ปลาช่อน', 'กก.', 'sea'], ['กุ้งฝอย', 'กก.', 'sea'],
+    ['มะละกอ', 'กก.', 'veg'], ['มะเขือเปราะ', 'กก.', 'veg'], ['แครอท', 'กก.', 'veg'], ['ถั่วงอก', 'กก.', 'veg'], ['ผักกาดหอม', 'กก.', 'veg'],
+    ['ผักชีฝรั่ง', 'กก.', 'veg'], ['สะระแหน่', 'กก.', 'veg'], ['ใบแมงลัก', 'กก.', 'veg'], ['ผักแพว', 'กก.', 'veg'], ['ใบย่านาง', 'กก.', 'veg'],
+    ['ผักกระเฉด', 'กก.', 'veg'], ['มะกอก', 'กก.', 'veg'], ['เห็ดเข็มทอง', 'กก.', 'veg'],
+    ['ปลาร้า', 'กก.', 'isan'], ['น้ำปลาร้า', 'ขวด', 'isan'], ['ปูเค็ม', 'กก.', 'isan'], ['ปูดอง', 'กก.', 'isan'], ['กุ้งแห้ง', 'กก.', 'isan'],
+    ['ถั่วลิสง', 'กก.', 'isan'], ['น้ำตาลปี๊บ', 'กก.', 'isan'], ['ข้าวเหนียว', 'กก.', 'isan'], ['ข้าวคั่ว', 'กก.', 'isan'], ['พริกแห้ง', 'กก.', 'isan'],
+    ['มะขามเปียก', 'กก.', 'isan'], ['กะปิ', 'กก.', 'isan'], ['แจ่วบอง', 'ขวด', 'isan'], ['น้ำจิ้มแจ่ว', 'ขวด', 'isan']
+  ];
+  var KEY = { qty: 'ord.qty.v1', custom: 'ord.custom.v1', shop: 'ord.shop.v1', note: 'ord.note.v1', baht: 'ord.baht.v1', hidden: 'ord.hidden.v1' };
+
+  function load(k, fb) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+  var custom = load(KEY.custom, []);
+  var qty = load(KEY.qty, {});
+  var baht = load(KEY.baht, {});
+  var hidden = load(KEY.hidden, {});
+  var editMode = false;
+  var shop = load(KEY.shop, '');
+  var note = load(KEY.note, '');
+  var base = DEF.map(function (d, i) { return { id: 'd' + i, name: d[0], unit: d[1], cat: d[2] }; });
+  var filter = 'all', query = '';
+
+  function everyItem() { return base.concat(custom); }
+  function allItems() { return everyItem().filter(function (i) { return !hidden[i.id]; }); }
+  function catIndex(id) { for (var i = 0; i < CATS.length; i++) if (CATS[i].id === id) return i; return CATS.length; }
+  function sorted() { return allItems().map(function (x, i) { return { x: x, i: i }; }).sort(function (a, b) { return catIndex(a.x.cat) - catIndex(b.x.cat) || a.i - b.i; }).map(function (o) { return o.x; }); }
+  function find(id) { var a = allItems(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
+  function isBaht(it) { return it.cat === 'veg' && baht[it.id] === true; }
+  function unitOf(it) { return isBaht(it) ? 'บาท' : it.unit; }
+  function stepOf(it) { return isBaht(it) ? 10 : (it.unit === 'กก.' ? 0.5 : 1); }
+  function defQty(it) { return isBaht(it) ? 10 : 1; }
+  function round2(n) { return Math.round(n * 100) / 100; }
+  function fmt(n) { return Number.isInteger(n) ? String(n) : String(round2(n)); }
+  function parse(s) { var v = parseFloat(String(s).replace(',', '.')); return isFinite(v) && v > 0 ? round2(v) : 0; }
+  function orderedCount() { var n = 0, a = allItems(); for (var i = 0; i < a.length; i++) if (qty[a[i].id] > 0) n++; return n; }
+
+  var todayStr = new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  $('today').textContent = todayStr;
+
+  /* ---------- views ---------- */
+  function show(name) {
+    ['pick', 'review', 'result'].forEach(function (v) { $('v-' + v).hidden = v !== name; });
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- pick view ---------- */
+  function renderChips() {
+    var box = $('chips'); box.textContent = '';
+    var defs = [{ id: 'all', name: 'ทั้งหมด' }, { id: 'ordered', name: 'สั่งแล้ว' }].concat(CATS);
+    defs.forEach(function (c) {
+      var b = el('button', 'chip-f', c.name); b.type = 'button'; b.dataset.f = c.id;
+      b.setAttribute('aria-pressed', String(filter === c.id));
+      box.appendChild(b);
+    });
+  }
+
+  function makeRow(it) {
+    var row = el('div', 'row'); row.dataset.id = it.id;
+    var nm = el('div', 'nm', it.name);
+    if (editMode) {
+      var x = el('button', 'rm-item', 'ลบ'); x.type = 'button'; x.setAttribute('aria-label', 'ลบ ' + it.name + ' ออกจากรายการ');
+      row.appendChild(nm); row.appendChild(x);
+      return row;
+    }
+    var step = el('div', 'step');
+    var minus = el('button', 'b minus', '−'); minus.type = 'button'; minus.setAttribute('aria-label', 'ลด ' + it.name);
+    var inp = el('input', 'q'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.placeholder = '0'; inp.autocomplete = 'off';
+    inp.setAttribute('aria-label', 'จำนวน ' + it.name + ' หน่วย ' + it.unit);
+    var plus = el('button', 'b plus', '+'); plus.type = 'button'; plus.setAttribute('aria-label', 'เพิ่ม ' + it.name);
+    var u;
+    if (it.cat === 'veg') { u = el('button', 'unit unit-t', unitOf(it)); u.type = 'button'; }
+    else u = el('span', 'unit', it.unit);
+    step.appendChild(minus); step.appendChild(inp); step.appendChild(plus); step.appendChild(u);
+    row.appendChild(nm); row.appendChild(step);
+    paintRow(row, it);
+    return row;
+  }
+
+  function paintRow(row, it) {
+    var q = qty[it.id] || 0;
+    row.classList.toggle('on', q > 0);
+    var inp = row.querySelector('.q');
+    if (!inp) return;
+    if (document.activeElement !== inp) inp.value = q > 0 ? fmt(q) : '';
+    inp.setAttribute('aria-label', 'จำนวน ' + it.name + ' หน่วย ' + unitOf(it));
+    var ub = row.querySelector('.unit');
+    if (ub) {
+      ub.textContent = unitOf(it);
+      if (ub.tagName === 'BUTTON') {
+        ub.classList.toggle('baht', isBaht(it));
+        ub.setAttribute('aria-label', 'หน่วยของ ' + it.name + ' ตอนนี้เป็น ' + unitOf(it) + ' แตะเพื่อสลับ');
+      }
+    }
+  }
+
+  function renderList() {
+    var list = $('list'); list.textContent = '';
+    if (editMode) list.appendChild(el('p', 'hint', 'กด "ลบ" เพื่อเอารายการออกจากหน้านี้ ของที่ลบไว้กู้คืนได้ที่ล่างสุดของรายการ'));
+    var q = query.trim().toLowerCase(), shown = 0;
+    CATS.forEach(function (c) {
+      if (filter !== 'all' && filter !== 'ordered' && filter !== c.id) return;
+      var items = allItems().filter(function (it) {
+        if (it.cat !== c.id) return false;
+        if (q && it.name.toLowerCase().indexOf(q) < 0) return false;
+        if (filter === 'ordered' && !(qty[it.id] > 0)) return false;
+        return true;
+      });
+      if (!items.length) return;
+      list.appendChild(el('div', 'cat', c.name + ' · ' + items.length + ' รายการ' + (c.id === 'veg' ? ' · แตะหน่วยเพื่อสลับเป็นบาท' : '')));
+      items.forEach(function (it) { list.appendChild(makeRow(it)); shown++; });
+    });
+    if (!shown) list.appendChild(el('p', 'empty', filter === 'ordered' ? 'ยังไม่ได้เลือกรายการ' : 'ไม่พบวัตถุดิบที่ค้นหา'));
+    if (editMode) {
+      var gone = everyItem().filter(function (i) { return hidden[i.id]; });
+      if (gone.length) {
+        list.appendChild(el('div', 'cat', 'รายการที่ลบไว้ · ' + gone.length + ' รายการ · แตะเพื่อกู้คืน'));
+        var wrap = el('div', 'chip-wrap');
+        gone.forEach(function (i) { var c = el('button', 'chip', i.name); c.type = 'button'; c.dataset.id = i.id; wrap.appendChild(c); });
+        list.appendChild(wrap);
+      }
+    }
+  }
+
+  function refreshBar() {
+    var o = orderedCount(), t = allItems().length;
+    $('c-ord').textContent = o; $('c-miss').textContent = t - o;
+    $('go-review').disabled = o === 0;
+  }
+
+  function setQty(id, v) {
+    v = round2(Math.max(0, v));
+    if (v > 0) qty[id] = v; else delete qty[id];
+    save(KEY.qty, qty);
+    var row = $('list').querySelector('[data-id="' + id + '"]');
+    var it = find(id);
+    if (row && it) paintRow(row, it);
+    refreshBar();
+  }
+
+  $('list').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.classList.contains('chip')) {
+      delete hidden[b.dataset.id]; save(KEY.hidden, hidden); renderList(); refreshBar(); return;
+    }
+    var row = b.closest('.row'); if (!row) return;
+    var id = row.dataset.id, it = find(id); if (!it) return;
+    if (b.classList.contains('plus')) setQty(id, (qty[id] || 0) + stepOf(it));
+    else if (b.classList.contains('minus')) setQty(id, (qty[id] || 0) - stepOf(it));
+    else if (b.classList.contains('unit-t')) { baht[id] = !isBaht(it); save(KEY.baht, baht); setQty(id, 0); }
+    else if (b.classList.contains('rm-item')) {
+      hidden[id] = true; delete qty[id];
+      save(KEY.hidden, hidden); save(KEY.qty, qty); renderList(); refreshBar();
+    }
+  });
+  $('list').addEventListener('input', function (e) {
+    if (!e.target.classList.contains('q')) return;
+    var row = e.target.closest('.row'); setQty(row.dataset.id, parse(e.target.value));
+  });
+  $('list').addEventListener('focusin', function (e) { if (e.target.classList.contains('q')) e.target.select(); });
+  $('list').addEventListener('focusout', function (e) {
+    if (!e.target.classList.contains('q')) return;
+    var row = e.target.closest('.row'), it = find(row.dataset.id); if (it) { paintRow(row, it); }
+  });
+
+  $('chips').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip-f'); if (!b) return;
+    filter = b.dataset.f; renderChips(); renderList();
+  });
+  $('search').addEventListener('input', function (e) { query = e.target.value; renderList(); });
+  $('edit-toggle').addEventListener('click', function () {
+    editMode = !editMode;
+    this.setAttribute('aria-pressed', String(editMode));
+    this.textContent = editMode ? 'เสร็จสิ้น' : 'แก้ไขรายการ';
+    renderList();
+  });
+
+  /* add custom item */
+  UNITS.forEach(function (u) { var o = el('option', null, u); o.value = u; $('ni-unit').appendChild(o); });
+  CATS.forEach(function (c) { var o = el('option', null, c.name); o.value = c.id; $('ni-cat').appendChild(o); });
+  $('add-toggle').addEventListener('click', function () {
+    var f = $('add-form'); f.hidden = !f.hidden; this.setAttribute('aria-expanded', String(!f.hidden));
+    if (!f.hidden) $('ni-name').focus();
+  });
+  $('add-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('ni-name').value.trim(); if (!name) return;
+    custom.push({ id: 'c' + Date.now(), name: name, unit: $('ni-unit').value, cat: $('ni-cat').value, custom: true });
+    save(KEY.custom, custom);
+    $('ni-name').value = ''; $('add-status').textContent = 'เพิ่ม ' + name + ' แล้ว';
+    filter = 'all'; query = ''; $('search').value = ''; renderChips(); renderList(); refreshBar();
+  });
+
+  /* ---------- review view ---------- */
+  function renderReview() {
+    var items = sorted();
+    var ord = items.filter(function (i) { return qty[i.id] > 0; });
+    var miss = items.filter(function (i) { return !(qty[i.id] > 0); });
+    $('r-ordn').textContent = ord.length; $('r-all').textContent = items.length; $('r-missn').textContent = miss.length;
+    $('r-alert').hidden = miss.length === 0;
+
+    var mbox = $('r-missing'); mbox.textContent = '';
+    CATS.forEach(function (c) {
+      var m = miss.filter(function (i) { return i.cat === c.id; }); if (!m.length) return;
+      mbox.appendChild(el('div', 'group-label', c.name));
+      var wrap = el('div', 'chip-wrap');
+      m.forEach(function (i) { var b = el('button', 'chip', i.name); b.type = 'button'; b.dataset.id = i.id; wrap.appendChild(b); });
+      mbox.appendChild(wrap);
+    });
+
+    var obox = $('r-order'); obox.textContent = '';
+    if (!ord.length) obox.appendChild(el('p', 'empty', 'ยังไม่ได้เลือกรายการ'));
+    ord.forEach(function (i) {
+      var r = el('div', 'rrow'); r.dataset.id = i.id;
+      r.appendChild(el('div', 'nm', i.name));
+      r.appendChild(el('div', 'rq', fmt(qty[i.id]) + ' ' + unitOf(i)));
+      var x = el('button', 'rm', '×'); x.type = 'button'; x.setAttribute('aria-label', 'เอา ' + i.name + ' ออกจากใบสั่ง');
+      r.appendChild(x); obox.appendChild(r);
+    });
+    $('r-go').disabled = ord.length === 0;
+    $('f-shop').value = shop; $('f-note').value = note;
+  }
+  $('r-missing').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    var mi = find(b.dataset.id); setQty(b.dataset.id, mi ? defQty(mi) : 1); renderReview();
+  });
+  $('r-order').addEventListener('click', function (e) {
+    var b = e.target.closest('.rm'); if (!b) return;
+    setQty(b.closest('.rrow').dataset.id, 0); renderReview();
+  });
+  $('f-shop').addEventListener('input', function (e) { shop = e.target.value; save(KEY.shop, shop); });
+  $('f-note').addEventListener('input', function (e) { note = e.target.value; save(KEY.note, note); });
+  $('go-review').addEventListener('click', function () { renderReview(); show('review'); });
+  $('r-back').addEventListener('click', function () { renderList(); show('pick'); });
+
+  /* ---------- order image ---------- */
+  function wrapText(ctx, text, maxW) {
+    var tokens;
+    try { var seg = new Intl.Segmenter('th', { granularity: 'word' }); tokens = Array.from(seg.segment(text), function (s) { return s.segment; }); }
+    catch (e) { tokens = Array.from(text); }
+    var lines = [], cur = '';
+    tokens.forEach(function (t) {
+      if (t === '\n') { lines.push(cur); cur = ''; return; }
+      if (ctx.measureText(cur + t).width > maxW && cur) { lines.push(cur.replace(/\s+$/, '')); cur = t.replace(/^\s+/, ''); }
+      else cur += t;
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+  function rr(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  }
+
+  var lastCanvas = null;
+  async function makeImage() {
+    try {
+      if (document.fonts) await Promise.all([
+        document.fonts.load('700 40px Prompt', 'ก'), document.fonts.load('600 40px Prompt', 'ก'),
+        document.fonts.load('400 38px Sarabun', 'ก'), document.fonts.load('500 38px Sarabun', 'ก'), document.fonts.load('700 38px Sarabun', 'ก')
+      ].map(function (p) { return p.catch(function () {}); }));
+    } catch (e) {}
+    var items = sorted().filter(function (i) { return qty[i.id] > 0; });
+    var groups = CATS.map(function (c) { return { c: c, list: items.filter(function (i) { return i.cat === c.id; }) }; }).filter(function (g) { return g.list.length; });
+    var W = 1080, P = 56, RH = 88, BH = 72;
+    var FD = '"Prompt","Sarabun",sans-serif', FB = '"Sarabun","Prompt",sans-serif';
+    var now = new Date();
+    var timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+    var noteText = note.trim();
+    ctx.font = '400 38px ' + FB;
+    var noteLines = noteText ? wrapText(ctx, noteText, W - 2 * P - 56) : [];
+    var noteH = noteLines.length ? noteLines.length * 52 + 56 : 0;
+    var H = 314 + (noteH ? 24 + noteH : 0) + 24;
+    groups.forEach(function (g) { H += BH + g.list.length * RH + 16; });
+    H += 24 + 100;
+    cv.width = W; cv.height = H; ctx = cv.getContext('2d');
+
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1C7448'; ctx.fillRect(0, 0, W, 230);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.fillStyle = '#FFFFFF';
+    var title = shop.trim() || 'ใบสั่งวัตถุดิบ', ts = 68;
+    do { ctx.font = '700 ' + ts + 'px ' + FD; ts -= 2; } while (ctx.measureText(title).width > W - 2 * P && ts > 32);
+    ctx.fillText(title, P, 112);
+    ctx.font = '400 36px ' + FB; ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillText((shop.trim() ? 'ใบสั่งวัตถุดิบ · ' : '') + todayStr, P, 178);
+
+    ctx.fillStyle = '#EEF4EF'; ctx.fillRect(0, 230, W, 84);
+    ctx.textBaseline = 'middle'; ctx.fillStyle = '#16231B'; ctx.font = '700 42px ' + FD;
+    ctx.fillText('ต้องซื้อ ' + items.length + ' รายการ', P, 273);
+
+    var y = 314;
+    if (noteH) {
+      y += 24;
+      ctx.fillStyle = '#FFF0D2'; rr(ctx, P, y, W - 2 * P, noteH, 16); ctx.fill();
+      ctx.fillStyle = '#6B4200'; ctx.font = '400 38px ' + FB;
+      noteLines.forEach(function (ln, i) { ctx.fillText(ln, P + 28, y + 28 + 26 + i * 52); });
+      y += noteH;
+    }
+    y += 24;
+
+    groups.forEach(function (g) {
+      ctx.fillStyle = '#1C7448'; ctx.font = '700 34px ' + FB; ctx.textAlign = 'left';
+      ctx.fillText(g.c.name + ' (' + g.list.length + ')', P, y + BH / 2 + 4);
+      ctx.strokeStyle = '#1C7448'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(P, y + BH - 4); ctx.lineTo(W - P, y + BH - 4); ctx.stroke();
+      y += BH;
+      g.list.forEach(function (it) {
+        var cy = y + RH / 2, q = fmt(qty[it.id]);
+        ctx.strokeStyle = '#8FA396'; ctx.lineWidth = 3; rr(ctx, P, cy - 22, 44, 44, 8); ctx.stroke();
+        ctx.font = '700 46px ' + FD; var qw = ctx.measureText(q).width;
+        ctx.font = '400 36px ' + FB; var un = unitOf(it), uw = ctx.measureText(un).width;
+        ctx.textAlign = 'right'; ctx.fillStyle = '#5C6B61'; ctx.fillText(un, W - P, cy + 2);
+        ctx.font = '700 46px ' + FD; ctx.fillStyle = '#16231B'; ctx.fillText(q, W - P - uw - 14, cy + 2);
+        ctx.textAlign = 'left';
+        var maxW = W - P - uw - 14 - qw - (P + 64) - 28, ns = 46;
+        do { ctx.font = '500 ' + ns + 'px ' + FB; ns -= 2; } while (ctx.measureText(it.name).width > maxW && ns > 26);
+        ctx.fillStyle = '#16231B'; ctx.fillText(it.name, P + 64, cy + 2);
+        ctx.strokeStyle = '#E3E9E4'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(P, y + RH); ctx.lineTo(W - P, y + RH); ctx.stroke();
+        y += RH;
+      });
+      y += 16;
+    });
+
+    y += 24;
+    ctx.fillStyle = '#16231B'; ctx.font = '700 42px ' + FD; ctx.textAlign = 'left'; ctx.fillText('รวม ' + items.length + ' รายการ', P, y + 50);
+    ctx.fillStyle = '#5C6B61'; ctx.font = '400 32px ' + FB; ctx.textAlign = 'right'; ctx.fillText('สร้างเมื่อ ' + timeStr + ' น.', W - P, y + 50);
+    lastCanvas = cv;
+    $('shot').src = cv.toDataURL('image/png');
+  }
+
+  $('r-go').addEventListener('click', async function () {
+    var b = this; b.disabled = true; var old = b.textContent; b.textContent = 'กำลังสร้างรูป…';
+    try { await makeImage(); $('res-status').textContent = ''; show('result'); }
+    catch (e) { b.textContent = 'สร้างรูปไม่สำเร็จ ลองอีกครั้ง'; b.disabled = false; return; }
+    b.textContent = old; b.disabled = false;
+  });
+  $('res-edit').addEventListener('click', function () { renderReview(); show('review'); });
+
+  var resetArmed = false;
+  $('res-reset').addEventListener('click', function () {
+    var b = this;
+    if (!resetArmed) {
+      resetArmed = true; b.textContent = 'แตะอีกครั้งเพื่อล้างจำนวนทั้งหมด';
+      setTimeout(function () { resetArmed = false; b.textContent = 'เริ่มสั่งรอบใหม่'; }, 4000); return;
+    }
+    resetArmed = false; b.textContent = 'เริ่มสั่งรอบใหม่';
+    qty = {}; save(KEY.qty, qty); filter = 'all'; query = ''; $('search').value = '';
+    renderChips(); renderList(); refreshBar(); show('pick');
+  });
+
+  /* save PNG through the downloads capability when the viewer allows it */
+  var dl = null;
+  if (window.claude && window.claude.use) {
+    window.claude.use('downloads').then(function (d) { dl = d; if (d) $('save-img').hidden = false; }).catch(function () {});
+  }
+  $('save-img').addEventListener('click', function () {
+    if (!dl || !lastCanvas) return;
+    var n = new Date(), p = function (x) { return String(x).padStart(2, '0'); };
+    var name = 'order-' + n.getFullYear() + '-' + p(n.getMonth() + 1) + '-' + p(n.getDate()) + '.png';
+    lastCanvas.toBlob(function (blob) {
+      if (!blob) { $('res-status').textContent = 'บันทึกไม่ได้ ให้กดค้างที่รูปหรือแคปหน้าจอแทน'; return; }
+      dl.save({ filename: name, data: blob }).then(function () { $('res-status').textContent = 'บันทึกรูปแล้ว'; })
+        .catch(function (err) { if (err && err.code === 'declined') return; $('res-status').textContent = 'บันทึกไม่ได้ ให้กดค้างที่รูปหรือแคปหน้าจอแทน'; });
+    }, 'image/png');
+  });
+
+  renderChips(); renderList(); refreshBar();
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+}
+</script>
+</body>
+</html>
